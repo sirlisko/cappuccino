@@ -18,11 +18,33 @@
   <meta name="theme-color" content="#f5ecdf">
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,900&family=Inter:wght@400;600&display=swap"
-    rel="stylesheet">
+  <link rel="preload" href="fonts/fraunces.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <noscript>
+    <style>
+      main> :not(noscript),
+      footer .lang,
+      #espresso {
+        display: none
+      }
+    </style>
+  </noscript>
   <style>
+    @font-face {
+      font-family: Fraunces;
+      src: url(fonts/fraunces.woff2) format("woff2");
+      font-weight: 100 900;
+      /* block, not swap: a fallback font swapping out at 300px is a visible jump */
+      font-display: block
+    }
+
+    @font-face {
+      font-family: Inter;
+      src: url(fonts/inter.woff2) format("woff2");
+      font-weight: 100 900;
+      font-display: swap
+    }
+
     :root {
       --bg: #f5ecdf;
       --bg-yes: #e9f0e1;
@@ -158,7 +180,52 @@
 
     .hint {
       font-size: 13px;
-      color: var(--muted)
+      color: var(--muted);
+      text-wrap: balance
+    }
+
+    .share {
+      font: 600 14px Inter, sans-serif;
+      padding: 10px 18px;
+      margin-top: 4px;
+      border-radius: 999px;
+      border: 1.5px solid currentColor;
+      background: none;
+      color: var(--ink);
+      cursor: pointer;
+      transition: background .15s, color .15s
+    }
+
+    .share:hover {
+      background: var(--ink);
+      color: var(--bg)
+    }
+
+    .share:focus-visible,
+    .lang button:focus-visible {
+      outline: 2px solid var(--ink);
+      outline-offset: 3px
+    }
+
+    .lang {
+      display: flex;
+      justify-content: center;
+      gap: 2px
+    }
+
+    .lang button {
+      font: 12px Inter, sans-serif;
+      padding: 4px 8px;
+      border: 0;
+      border-radius: 4px;
+      background: none;
+      color: var(--muted);
+      cursor: pointer
+    }
+
+    .lang button[aria-pressed="true"] {
+      color: var(--ink);
+      font-weight: 600
     }
 
     footer {
@@ -204,14 +271,23 @@
     <button class="answer" id="answer" type="button" aria-describedby="line">…</button>
     <p class="line" id="line" aria-live="polite"></p>
     <p class="hint" id="hint"></p>
+    <button class="share" id="share" type="button"></button>
+    <noscript>
+      <p class="q">No JavaScript, no verdict.</p>
+      <p class="answer" style="--c: var(--no)">NO</p>
+      <p class="line">Assume no. It's safer.</p>
+    </noscript>
   </main>
   <footer>
     <p id="espresso"></p>
-    <p class="credit" id="credit"></p>
+    <p class="credit" id="credit">Made by <a href="https://sirlisko.com">sirlisko</a>, in memory of the original by <a
+        href="https://www.raibaz.it/">raibaz</a>. Riposi in pace.</p>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="it">IT</button>
+    </div>
   </footer>
   <script>
-    const LANG = (navigator.language || "en").toLowerCase().startsWith("it") ? "it" : "en";
-
     const TEXT = {
       en: {
         title: "Can I have a cappuccino?",
@@ -220,6 +296,9 @@
         espresso: "An espresso, on the other hand, is always allowed. ☕",
         credit: `Made by <a href="https://sirlisko.com">sirlisko</a>, in memory of the original by <a href="https://www.raibaz.it/">raibaz</a>. Riposi in pace.`,
         nags: ["The answer hasn't changed. Stop tapping.", "Tapping harder won't help.", "OK, I'm telling your nonna."],
+        share: "Send it to the friend who needs this",
+        shareText: w => `Can I have a cappuccino right now? Apparently: ${w}`,
+        copied: "Link copied. Go ruin their afternoon.",
       },
       it: {
         title: "Posso prendere un cappuccino?",
@@ -228,6 +307,9 @@
         espresso: "Il caffè, invece, va sempre bene. ☕",
         credit: `Fatto da <a href="https://sirlisko.com">sirlisko</a>, in memoria dell'originale di <a href="https://www.raibaz.it/">raibaz</a>. Riposi in pace.`,
         nags: ["La risposta non è cambiata. Smettila di toccare.", "Toccare più forte non serve.", "Va bene, lo dico a tua nonna."],
+        share: "Mandalo all'amico che ne ha bisogno",
+        shareText: w => `Posso prendere un cappuccino adesso? A quanto pare: ${w}`,
+        copied: "Link copiato. Vai a rovinargli il pomeriggio.",
       },
     };
 
@@ -349,27 +431,97 @@
         }
       },
     ];
+    // Checked before BANDS; each applies only on its day, within [from, to).
+    const SPECIALS = [
+      {
+        month: 1, day: 1, from: 0, to: 12 * 60, level: "yes", word: "SÌ", lines: {
+          en: [
+            "You're still up from last night. Cappuccino allowed, just this once.",
+            "Happy new year. The rules start again tomorrow.",
+          ],
+          it: [
+            "Sei ancora sveglio da ieri sera. Cappuccino concesso, solo per stavolta.",
+            "Buon anno. Le regole ripartono domani.",
+          ],
+        }
+      },
+      {
+        month: 4, day: 1, from: 11 * 60, to: 24 * 60, level: "yes", word: "SÌ", lines: {
+          en: [
+            "Pesce d'aprile! Obviously not. Have an espresso.",
+            "April fools. Did you really think the rules had changed?",
+          ],
+          it: [
+            "Pesce d'aprile! Ovviamente no. Prenditi un caffè.",
+            "Ci sei cascato. Pensavi davvero che le regole fossero cambiate?",
+          ],
+        }
+      },
+      {
+        month: 8, day: 15, from: 12 * 60, to: 20 * 60, level: "no", word: "NO", lines: {
+          en: [
+            "It's Ferragosto. It's 38 degrees. You want hot milk?",
+            "Everyone is at the beach. Even the barista. Especially the barista.",
+          ],
+          it: [
+            "È Ferragosto. Ci sono 38 gradi. Vuoi il latte caldo?",
+            "Sono tutti al mare. Anche il barista. Soprattutto il barista.",
+          ],
+        }
+      },
+      {
+        month: 12, day: 25, from: 5 * 60, to: 11 * 60, level: "yes", word: "SÌ", lines: {
+          en: [
+            "Buon Natale. Cappuccino and panettone. Nonna approves.",
+            "It's Christmas morning. Even the barista is smiling.",
+          ],
+          it: [
+            "Buon Natale. Cappuccino e panettone. La nonna approva.",
+            "È la mattina di Natale. Sorride persino il barista.",
+          ],
+        }
+      },
+      {
+        month: 12, day: 25, from: 12 * 60, to: 20 * 60, level: "no", word: "NO", lines: {
+          en: [
+            "It's Christmas. You've been eating for six hours. No.",
+            "Nonna made four courses. There is no room for milk.",
+          ],
+          it: [
+            "È Natale. Mangi da sei ore. No.",
+            "La nonna ha fatto quattro portate. Non c'è spazio per il latte.",
+          ],
+        }
+      },
+    ];
     const COLORS = { yes: "var(--yes)", maybe: "var(--maybe)", no: "var(--no)" };
-    const T = TEXT[LANG];
     const $ = id => document.getElementById(id);
     const pad = n => String(n).padStart(2, "0");
     const prefersDark = matchMedia("(prefers-color-scheme: dark)");
 
-    function bandFor(mins) {
-      return BANDS.find(b => (mins >= b.from && mins < b.to) || (mins + 1440 >= b.from && mins + 1440 < b.to));
+    function bandFor(d) {
+      const mins = d.getHours() * 60 + d.getMinutes();
+      const special = SPECIALS.find(s => s.month === d.getMonth() + 1 && s.day === d.getDate() && mins >= s.from && mins < s.to);
+      return special || BANDS.find(b => (mins >= b.from && mins < b.to) || (mins + 1440 >= b.from && mins + 1440 < b.to));
     }
 
-    let current, lastLine = -1, taps = 0;
+    function savedLang() {
+      try { return localStorage.getItem("lang"); } catch { return null; }
+    }
+
+    let lang = TEXT[savedLang()] ? savedLang() : (navigator.language || "en").toLowerCase().startsWith("it") ? "it" : "en";
+    let T = TEXT[lang];
+    let current, lastLine = -1, taps = 0, shareReset;
 
     function applyTheme(h) {
       const dark = prefersDark.matches || h >= 20 || h < 5;
       document.documentElement.dataset.theme = dark ? "dark" : "light";
       document.querySelector('meta[name="theme-color"]').content = dark ? "#1c130d" : "#f5ecdf";
     }
-    function render(h, m) {
-      $("q").innerHTML = T.q(`${pad(h)}:${pad(m)}`);
-      applyTheme(h);
-      const band = bandFor(h * 60 + m);
+    function render(d) {
+      $("q").innerHTML = T.q(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
+      applyTheme(d.getHours());
+      const band = bandFor(d);
       if (band === current) return;
       current = band;
       taps = 0;
@@ -381,7 +533,7 @@
       nextLine();
     }
     function nextLine() {
-      const lines = current.lines[LANG];
+      const lines = current.lines[lang];
       let i;
       do { i = Math.floor(Math.random() * lines.length); } while (lines.length > 1 && i === lastLine);
       lastLine = i;
@@ -395,17 +547,45 @@
     }
     function tick() {
       const d = new Date();
-      render(d.getHours(), d.getMinutes());
+      render(d);
       setTimeout(tick, (60 - d.getSeconds()) * 1000);
     }
+    function setLang(l) {
+      lang = l;
+      T = TEXT[l];
+      document.documentElement.lang = l;
+      document.title = T.title;
+      $("hint").textContent = T.hint;
+      $("espresso").textContent = T.espresso;
+      $("credit").innerHTML = T.credit;
+      $("share").textContent = T.share;
+      document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === l));
+      current = undefined;
+      render(new Date());
+    }
+    async function share() {
+      const url = document.querySelector('meta[property="og:url"]').content;
+      const text = T.shareText(current.word);
+      if (navigator.share) {
+        try { await navigator.share({ title: T.title, text, url }); } catch { }
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        $("share").textContent = T.copied;
+        clearTimeout(shareReset);
+        shareReset = setTimeout(() => $("share").textContent = T.share, 2500);
+      } catch { }
+    }
 
-    document.documentElement.lang = LANG;
-    document.title = T.title;
-    $("hint").textContent = T.hint;
-    $("espresso").textContent = T.espresso;
-    $("credit").innerHTML = T.credit;
     $("answer").addEventListener("click", onTap);
+    $("share").addEventListener("click", share);
+    document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => {
+      try { localStorage.setItem("lang", b.dataset.lang); } catch { }
+      setLang(b.dataset.lang);
+    }));
     prefersDark.addEventListener("change", () => applyTheme(new Date().getHours()));
+    setLang(lang);
     tick();
   </script>
 </body>
