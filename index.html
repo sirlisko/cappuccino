@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Posso?</title>
+<meta name="description" content="Can I have a cappuccino right now? The Italian verdict, updated every minute.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sirlisko.github.io/cappuccino/">
+<meta property="og:title" content="Posso?">
+<meta property="og:description" content="Can I have a cappuccino right now? The Italian verdict, updated every minute.">
+<meta property="og:image" content="https://sirlisko.github.io/cappuccino/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f5ecdf">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5ecdf;--bg-yes:#e9f0e1;--bg-no:#f7e4df;--ink:#2b1a10;--muted:#7a6452;--yes:#1f7a3a;--maybe:#c77d0a;--no:#b3261e;--c:var(--ink)}
+:root[data-theme="dark"]{--bg:#1c130d;--bg-yes:#15201a;--bg-no:#2a1512;--ink:#f3e7d7;--muted:#a48c77;--yes:#5cc27a;--maybe:#e8a93a;--no:#ef5a4c}
+*{box-sizing:border-box;margin:0}
+body{min-height:100svh;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;padding:24px 16px;transition:background .4s,color .4s}
+body[data-level="no"]{background:var(--bg-no)}
+body[data-level="yes"]{background:var(--bg-yes)}
+header{text-align:center;font-size:13px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted)}
+.flag{display:flex;justify-content:center;margin:10px auto 0;width:48px;height:4px}
+.flag i{flex:1}.flag i:nth-child(1){background:#1f7a3a}.flag i:nth-child(2){background:#fff}.flag i:nth-child(3){background:#b3261e}
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:18px}
+.q{font-family:Fraunces,serif;font-size:clamp(20px,4vw,34px)}
+.q b{font-weight:900}
+.answer{font:900 clamp(120px,32vw,340px)/1 Fraunces,serif;padding:.12em .1em 0;color:var(--c);background:none;border:0;cursor:pointer;user-select:none;transition:transform .15s;border-radius:.1em}
+.answer:active{transform:scale(.96)}
+.answer:focus-visible{outline:3px solid var(--c);outline-offset:4px}
+.line{font-family:Fraunces,serif;font-size:clamp(19px,3.2vw,28px);max-width:30ch;min-height:2.6em}
+.hint{font-size:13px;color:var(--muted)}
+footer{text-align:center;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+footer a{color:inherit}
+.credit{font-size:12px;opacity:.8}
+</style>
+</head>
+<body>
+<header>Posso?<div class="flag"><i></i><i></i><i></i></div></header>
+<main>
+  <p class="q" id="q"></p>
+  <button class="answer" id="answer" type="button" aria-describedby="line">…</button>
+  <p class="line" id="line" aria-live="polite"></p>
+  <p class="hint" id="hint"></p>
+</main>
+<footer>
+  <p id="espresso"></p>
+  <p class="credit" id="credit"></p>
+</footer>
+<script>
+const LANG = (navigator.language || "en").toLowerCase().startsWith("it") ? "it" : "en";
+
+const TEXT = {
+  en: {
+    q: t => `Can I have a <b>cappuccino</b> at <b>${t}</b>?`,
+    hint: "Tap the answer to ask again. It won't change.",
+    espresso: "An espresso, on the other hand, is always allowed. ☕",
+    credit: `Made by <a href="https://sirlisko.com">sirlisko</a>, in memory of the original by <a href="https://www.raibaz.it/">raibaz</a>. Riposi in pace.`,
+    nags: ["The answer hasn't changed. Stop tapping.", "Tapping harder won't help.", "OK, I'm telling your nonna."],
+  },
+  it: {
+    q: t => `Posso prendere un <b>cappuccino</b> alle <b>${t}</b>?`,
+    hint: "Tocca la risposta per chiedere di nuovo. Non cambierà.",
+    espresso: "Il caffè, invece, va sempre bene. ☕",
+    credit: `Fatto da <a href="https://sirlisko.com">sirlisko</a>, in memoria dell'originale di <a href="https://www.raibaz.it/">raibaz</a>. Riposi in pace.`,
+    nags: ["La risposta non è cambiata. Smettila di toccare.", "Toccare più forte non serve.", "Va bene, lo dico a tua nonna."],
+  },
+};
+
+const BANDS = [
+  {from:5*60, to:11*60, level:"yes", word:"SÌ", lines:{
+    en:[
+      "Go ahead. You are a civilized human being.",
+      "Milk before 11? Correct. Your nonna is proud.",
+      "Cappuccino e cornetto. As tradition intended.",
+      "At the counter, standing up, in under three minutes. Like a professional.",
+      "The foam is ready. The cocoa is optional. Your dignity is intact.",
+      "Enjoy it. In a few hours this will be a crime.",
+    ],
+    it:[
+      "Vai tranquillo. Sei una persona civile.",
+      "Latte prima delle 11? Corretto. La nonna è fiera di te.",
+      "Cappuccino e cornetto. Come tradizione comanda.",
+      "Al banco, in piedi, in meno di tre minuti. Da professionista.",
+      "La schiuma è pronta. Il cacao è facoltativo. La tua dignità è salva.",
+      "Goditelo. Tra qualche ora sarà reato.",
+    ],
+  }},
+  {from:11*60, to:12*60, level:"maybe", word:"MAH", lines:{
+    en:[
+      "Technically legal. Morally questionable.",
+      "The barista will serve you. The barista will also judge you.",
+      "Decide fast. Lunch is coming.",
+      "Fine, but order it quietly. People are watching.",
+      "A small one. No cocoa. Don't make eye contact.",
+      "Your nonna isn't angry. She's disappointed.",
+    ],
+    it:[
+      "Tecnicamente legale. Moralmente discutibile.",
+      "Il barista te lo farà. Il barista ti giudicherà.",
+      "Decidi in fretta. Sta arrivando il pranzo.",
+      "Va bene, ma ordinalo a bassa voce. Ti guardano.",
+      "Piccolo. Senza cacao. Non guardare nessuno negli occhi.",
+      "La nonna non è arrabbiata. È delusa.",
+    ],
+  }},
+  {from:12*60, to:16*60, level:"no", word:"NO", lines:{
+    en:[
+      "Milk. On top of lunch. Are you trying to kill yourself?",
+      "You just had carbonara. Your stomach has filed a formal complaint.",
+      "Have an espresso like an adult.",
+      "Milk after pasta. Your digestion just resigned.",
+      "The barista pretended not to hear you. Take the hint.",
+      "Lunch is sacred. Don't drown it in milk.",
+    ],
+    it:[
+      "Latte. Sopra il pranzo. Ma sei pazzo?",
+      "Hai appena mangiato la carbonara. Il tuo stomaco ha sporto denuncia.",
+      "Prenditi un caffè come le persone serie.",
+      "Latte dopo la pasta. La tua digestione si è appena dimessa.",
+      "Il barista ha fatto finta di non sentire. Cogli il segnale.",
+      "Il pranzo è sacro. Non annegarlo nel latte.",
+    ],
+  }},
+  {from:16*60, to:20*60, level:"no", word:"NO", lines:{
+    en:[
+      "A cappuccino at this hour? Welcome, tourist. Where's your hotel?",
+      "Next you'll ask for pineapple on pizza.",
+      "The barista will make it. Then call his mother to tell her about you.",
+      "Sure. Would you like ketchup on your pasta too?",
+      "Order it and they'll answer you in English.",
+      "Only people with a selfie stick drink this at 5 pm.",
+    ],
+    it:[
+      "Un cappuccino a quest'ora? Benvenuto, turista. In che hotel stai?",
+      "Poi mi chiedi anche la pizza con l'ananas.",
+      "Il barista te lo farà. Poi chiamerà sua madre per raccontarglielo.",
+      "Certo. Vuoi anche il ketchup sulla pasta?",
+      "Ordinalo e ti risponderanno in inglese.",
+      "Alle cinque del pomeriggio lo beve solo chi ha il bastone per i selfie.",
+    ],
+  }},
+  {from:20*60, to:26*60, level:"no", word:"NO!", lines:{
+    en:[
+      "After dinner?! Somewhere in Napoli a nonna just fainted.",
+      "Order one now and they'll deport you. Politely.",
+      "Try an amaro. Or a digestivo. Or shame.",
+      "The espresso machine is judging you. So are we.",
+      "Milk after dinner. Bold. Wrong, but bold.",
+      "Your ancestors are spinning in their graves. In unison.",
+    ],
+    it:[
+      "Dopo cena?! Da qualche parte a Napoli una nonna è appena svenuta.",
+      "Ordinane uno adesso e ti espellono. Con educazione.",
+      "Prova un amaro. O un digestivo. O la vergogna.",
+      "La macchina del caffè ti sta giudicando. Anche noi.",
+      "Latte dopo cena. Coraggioso. Sbagliato, ma coraggioso.",
+      "I tuoi antenati si stanno rigirando nella tomba. All'unisono.",
+    ],
+  }},
+  {from:2*60, to:5*60, level:"no", word:"BOH", lines:{
+    en:[
+      "It's the middle of the night. Go to sleep. Cappuccino opens at 5.",
+      "The bar is closed. Italy is closed. Go to bed.",
+      "Why are you awake? Why are you thinking about milk?",
+      "Even the baristas are asleep. Be like the baristas.",
+    ],
+    it:[
+      "È notte fonda. Vai a dormire. Il cappuccino apre alle 5.",
+      "Il bar è chiuso. L'Italia è chiusa. Vai a letto.",
+      "Perché sei sveglio? Perché pensi al latte?",
+      "Anche i baristi dormono. Fai come i baristi.",
+    ],
+  }},
+];
+const COLORS = {yes:"var(--yes)", maybe:"var(--maybe)", no:"var(--no)"};
+const T = TEXT[LANG];
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,"0");
+const prefersDark = matchMedia("(prefers-color-scheme: dark)");
+
+function bandFor(mins){
+  return BANDS.find(b => (mins >= b.from && mins < b.to) || (mins + 1440 >= b.from && mins + 1440 < b.to));
+}
+
+let current, lastLine = -1, taps = 0;
+
+function applyTheme(h){
+  const dark = prefersDark.matches || h >= 20 || h < 5;
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#1c130d" : "#f5ecdf";
+}
+function render(h, m){
+  $("q").innerHTML = T.q(`${pad(h)}:${pad(m)}`);
+  applyTheme(h);
+  const band = bandFor(h*60+m);
+  if (band === current) return;
+  current = band;
+  taps = 0;
+  document.body.dataset.level = band.level;
+  const a = $("answer");
+  a.textContent = band.word;
+  a.style.setProperty("--c", COLORS[band.level]);
+  nextLine();
+}
+function nextLine(){
+  const lines = current.lines[LANG];
+  let i;
+  do { i = Math.floor(Math.random()*lines.length); } while (lines.length > 1 && i === lastLine);
+  lastLine = i;
+  $("line").textContent = lines[i];
+}
+function onTap(){
+  taps++;
+  // After 5 taps the page loses patience for 3 taps, then starts over.
+  if (taps >= 5 && taps < 5 + T.nags.length) $("line").textContent = T.nags[taps - 5];
+  else { if (taps >= 5 + T.nags.length) taps = 0; nextLine(); }
+}
+function tick(){
+  const d = new Date();
+  render(d.getHours(), d.getMinutes());
+  setTimeout(tick, (60 - d.getSeconds()) * 1000);
+}
+
+document.documentElement.lang = LANG;
+$("hint").textContent = T.hint;
+$("espresso").textContent = T.espresso;
+$("credit").innerHTML = T.credit;
+$("answer").addEventListener("click", onTap);
+prefersDark.addEventListener("change", () => applyTheme(new Date().getHours()));
+tick();
+</script>
+</body>
+</html>
