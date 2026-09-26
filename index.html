@@ -23,7 +23,7 @@
   <noscript>
     <style>
       main> :not(noscript),
-      footer .lang,
+      footer .tools,
       #espresso {
         display: none
       }
@@ -81,6 +81,7 @@
       color: var(--ink);
       font-family: Inter, system-ui, sans-serif;
       padding: 24px 16px;
+      touch-action: manipulation;
       transition: background .4s, color .4s
     }
 
@@ -184,21 +185,35 @@
       text-wrap: balance
     }
 
-    .share {
-      font: 600 14px Inter, sans-serif;
-      padding: 10px 18px;
-      margin-top: 4px;
-      border-radius: 999px;
-      border: 1.5px solid currentColor;
+    .tools {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 4px 20px
+    }
+
+    .share,
+    .lang button {
+      font: 12px Inter, sans-serif;
+      padding: 4px 8px;
+      border: 0;
+      border-radius: 4px;
       background: none;
-      color: var(--ink);
-      cursor: pointer;
-      transition: background .15s, color .15s
+      color: var(--muted);
+      cursor: pointer
+    }
+
+    .share {
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+      text-underline-offset: 3px;
+      transition: color .15s
     }
 
     .share:hover {
-      background: var(--ink);
-      color: var(--bg)
+      color: var(--ink);
+      text-decoration-color: currentColor
     }
 
     .share:focus-visible,
@@ -211,16 +226,6 @@
       display: flex;
       justify-content: center;
       gap: 2px
-    }
-
-    .lang button {
-      font: 12px Inter, sans-serif;
-      padding: 4px 8px;
-      border: 0;
-      border-radius: 4px;
-      background: none;
-      color: var(--muted);
-      cursor: pointer
     }
 
     .lang button[aria-pressed="true"] {
@@ -271,7 +276,6 @@
     <button class="answer" id="answer" type="button" aria-describedby="line">…</button>
     <p class="line" id="line" aria-live="polite"></p>
     <p class="hint" id="hint"></p>
-    <button class="share" id="share" type="button"></button>
     <noscript>
       <p class="q">No JavaScript, no verdict.</p>
       <p class="answer" style="--c: var(--no)">NO</p>
@@ -282,9 +286,12 @@
     <p id="espresso"></p>
     <p class="credit" id="credit">Made by <a href="https://sirlisko.com">sirlisko</a>, in memory of the original by <a
         href="https://www.raibaz.it/">raibaz</a>. Riposi in pace.</p>
-    <div class="lang" role="group" aria-label="Language">
-      <button type="button" data-lang="en">EN</button>
-      <button type="button" data-lang="it">IT</button>
+    <div class="tools">
+      <button class="share" id="share" type="button"></button>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="it">IT</button>
+      </div>
     </div>
   </footer>
   <script>
@@ -296,9 +303,10 @@
         espresso: "An espresso, on the other hand, is always allowed. ☕",
         credit: `Made by <a href="https://sirlisko.com">sirlisko</a>, in memory of the original by <a href="https://www.raibaz.it/">raibaz</a>. Riposi in pace.`,
         nags: ["The answer hasn't changed. Stop tapping.", "Tapping harder won't help.", "OK, I'm telling your nonna."],
-        share: "Send it to the friend who needs this",
+        share: "Share",
         shareText: w => `Can I have a cappuccino right now? Apparently: ${w}`,
-        copied: "Link copied. Go ruin their afternoon.",
+        copied: "Copied ✓",
+        copiedJoke: "Link copied. Go ruin their afternoon.",
       },
       it: {
         title: "Posso prendere un cappuccino?",
@@ -307,9 +315,10 @@
         espresso: "Il caffè, invece, va sempre bene. ☕",
         credit: `Fatto da <a href="https://sirlisko.com">sirlisko</a>, in memoria dell'originale di <a href="https://www.raibaz.it/">raibaz</a>. Riposi in pace.`,
         nags: ["La risposta non è cambiata. Smettila di toccare.", "Toccare più forte non serve.", "Va bene, lo dico a tua nonna."],
-        share: "Mandalo all'amico che ne ha bisogno",
+        share: "Condividi",
         shareText: w => `Posso prendere un cappuccino adesso? A quanto pare: ${w}`,
-        copied: "Link copiato. Vai a rovinargli il pomeriggio.",
+        copied: "Copiato ✓",
+        copiedJoke: "Link copiato. Vai a rovinargli il pomeriggio.",
       },
     };
 
@@ -573,8 +582,12 @@
       try {
         await navigator.clipboard.writeText(`${text} ${url}`);
         $("share").textContent = T.copied;
+        $("hint").textContent = T.copiedJoke;
         clearTimeout(shareReset);
-        shareReset = setTimeout(() => $("share").textContent = T.share, 2500);
+        shareReset = setTimeout(() => {
+          $("share").textContent = T.share;
+          $("hint").textContent = T.hint;
+        }, 2500);
       } catch { }
     }
 
