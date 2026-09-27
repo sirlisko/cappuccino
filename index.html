@@ -503,6 +503,26 @@
         }
       },
     ];
+    // Easter egg: ?q=<any question>&name=<optional> always gets a NO, whatever the time.
+    const params = new URLSearchParams(location.search);
+    const custom = params.get("q")?.trim().slice(0, 200);
+    const no = params.get("name") ? `No, ${params.get("name").trim().slice(0, 40)}.` : "No.";
+    const CUSTOM = custom && {
+      q: custom, level: "no", word: "NO", lines: {
+        en: [
+          `${no} Absolutely not.`,
+          `${no} We don't even have a word for that.`,
+          `${no} Nonna has been informed.`,
+          `${no} That's not a drink. That's a dessert with an identity crisis.`,
+        ],
+        it: [
+          `${no} Assolutamente no.`,
+          `${no} Non abbiamo nemmeno una parola per questo.`,
+          `${no} La nonna è stata avvisata.`,
+          `${no} Quella non è una bevanda. È un dolce in crisi d'identità.`,
+        ],
+      }
+    };
     const COLORS = { yes: "var(--yes)", maybe: "var(--maybe)", no: "var(--no)" };
     const $ = id => document.getElementById(id);
     const pad = n => String(n).padStart(2, "0");
@@ -528,9 +548,10 @@
       document.querySelector('meta[name="theme-color"]').content = dark ? "#1c130d" : "#f5ecdf";
     }
     function render(d) {
-      $("q").innerHTML = T.q(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
+      if (CUSTOM) $("q").textContent = CUSTOM.q;
+      else $("q").innerHTML = T.q(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
       applyTheme(d.getHours());
-      const band = bandFor(d);
+      const band = CUSTOM || bandFor(d);
       if (band === current) return;
       current = band;
       taps = 0;
@@ -573,8 +594,8 @@
       render(new Date());
     }
     async function share() {
-      const url = document.querySelector('meta[property="og:url"]').content;
-      const text = T.shareText(current.word);
+      const url = CUSTOM ? location.href : document.querySelector('meta[property="og:url"]').content;
+      const text = CUSTOM ? `${CUSTOM.q} ${current.word}.` : T.shareText(current.word);
       if (navigator.share) {
         try { await navigator.share({ title: T.title, text, url }); } catch { }
         return;
