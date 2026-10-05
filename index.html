@@ -485,6 +485,8 @@
         ],
       }
     };
+    // Umami is injected by Netlify and may load after this script.
+    if (CUSTOM) addEventListener("load", () => window.umami?.track("custom-question", { q: CUSTOM.q }));
     const $ = id => document.getElementById(id);
     const pad = n => String(n).padStart(2, "0");
     const prefersDark = matchMedia("(prefers-color-scheme: dark)");
