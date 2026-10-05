@@ -15,13 +15,16 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="theme-color" content="#f5ecdf">
+  <meta name="theme-color" content="#c8102e">
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
-  <link rel="preload" href="fonts/fraunces.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/jost.woff2" as="font" type="font/woff2" crossorigin>
   <noscript>
     <style>
+      main noscript {
+        display: contents
+      }
+
       main> :not(noscript),
       footer .tools,
       #espresso {
@@ -31,41 +34,11 @@
   </noscript>
   <style>
     @font-face {
-      font-family: Fraunces;
-      src: url(fonts/fraunces.woff2) format("woff2");
+      font-family: Jost;
+      src: url(fonts/jost.woff2) format("woff2");
       font-weight: 100 900;
       /* block, not swap: a fallback font swapping out at 300px is a visible jump */
       font-display: block
-    }
-
-    @font-face {
-      font-family: Inter;
-      src: url(fonts/inter.woff2) format("woff2");
-      font-weight: 100 900;
-      font-display: swap
-    }
-
-    :root {
-      --bg: #f5ecdf;
-      --bg-yes: #e9f0e1;
-      --bg-no: #f7e4df;
-      --ink: #2b1a10;
-      --muted: #7a6452;
-      --yes: #1f7a3a;
-      --maybe: #c77d0a;
-      --no: #b3261e;
-      --c: var(--ink)
-    }
-
-    :root[data-theme="dark"] {
-      --bg: #1c130d;
-      --bg-yes: #15201a;
-      --bg-no: #2a1512;
-      --ink: #f3e7d7;
-      --muted: #a48c77;
-      --yes: #5cc27a;
-      --maybe: #e8a93a;
-      --no: #ef5a4c
     }
 
     * {
@@ -74,39 +47,51 @@
     }
 
     body {
+      --bg: #c8102e;
+      --fg: #fff;
       min-height: 100svh;
       display: flex;
       flex-direction: column;
+      gap: 32px;
       background: var(--bg);
-      color: var(--ink);
-      font-family: Inter, system-ui, sans-serif;
-      padding: 24px 16px;
+      color: var(--fg);
+      font: 16px/1.4 Jost, system-ui, sans-serif;
+      padding: clamp(24px, 5vw, 56px) clamp(16px, 6vw, 88px);
+      /* the whole page is tappable; this also makes iOS Safari fire clicks on plain text */
+      cursor: pointer;
       touch-action: manipulation;
       transition: background .4s, color .4s
     }
 
-    body[data-level="no"] {
-      background: var(--bg-no)
-    }
-
     body[data-level="yes"] {
-      background: var(--bg-yes)
+      --bg: #0d6b3f
     }
 
-    header {
-      text-align: center;
-      font-size: 13px;
-      letter-spacing: .25em;
-      text-transform: uppercase;
-      color: var(--muted)
+    body[data-level="maybe"] {
+      --bg: #f4b400;
+      --fg: #000
+    }
+
+    [data-theme="dark"] body {
+      --bg: #5a0a15
+    }
+
+    [data-theme="dark"] body[data-level="yes"] {
+      --bg: #0a3d26
+    }
+
+    [data-theme="dark"] body[data-level="maybe"] {
+      --bg: #4d3600;
+      --fg: #f4b400
     }
 
     .flag {
       display: flex;
-      justify-content: center;
-      margin: 10px auto 0;
+      margin: 0 auto;
       width: 48px;
-      height: 4px
+      height: 4px;
+      /* without it the green and red stripes vanish into the matching backgrounds */
+      outline: 1px solid var(--fg)
     }
 
     .flag i {
@@ -114,16 +99,15 @@
     }
 
     .flag i:nth-child(1) {
-      background: #1f7a3a
+      background: #009246
     }
 
     .flag i:nth-child(2) {
-      background: #fff;
-      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12)
+      background: #fff
     }
 
     .flag i:nth-child(3) {
-      background: #b3261e
+      background: #ce2b37
     }
 
     main {
@@ -133,113 +117,64 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      gap: 14px
+      gap: 16px;
+      user-select: none
     }
 
     .q {
-      font-family: Fraunces, serif;
-      font-size: clamp(20px, 4vw, 34px);
+      font-size: clamp(21px, 3vw, 36px);
+      line-height: 1.2;
+      max-width: 30ch;
       text-wrap: balance
     }
 
-    .q b {
-      font-weight: 900
-    }
-
     .answer {
-      font: 900 clamp(80px, min(28vw, 40svh), 320px)/.9 Fraunces, serif;
-      padding: 0 .1em;
-      color: var(--c);
+      font: 800 clamp(96px, min(34vw, 40svh), 420px)/.8 Jost, sans-serif;
+      letter-spacing: -.02em;
+      padding: .04em 0;
+      color: inherit;
       background: none;
       border: 0;
       cursor: pointer;
-      user-select: none;
-      transition: transform .15s;
-      border-radius: .1em
+      transition: transform .15s
     }
 
     .answer[data-accent] {
-      padding-top: .18em
+      padding-top: .3em
     }
 
     .answer:active {
-      transform: scale(.96)
+      transform: scale(.97)
     }
 
-    .answer:focus-visible {
-      outline: 3px solid var(--c);
+    .answer:focus-visible,
+    footer a:focus-visible,
+    footer button:focus-visible {
+      outline: 3px solid currentColor;
       outline-offset: 4px
     }
 
     .line {
-      font-family: Fraunces, serif;
-      font-size: clamp(19px, 3.2vw, 28px);
-      max-width: 30ch;
-      min-height: 2.6em;
+      font-size: clamp(22px, 2.8vw, 32px);
+      font-weight: 500;
+      line-height: 1.2;
+      max-width: 28ch;
+      min-height: 2.4em;
       text-wrap: balance
     }
 
     .hint {
-      font-size: 13px;
-      color: var(--muted);
+      font-size: 15px;
       text-wrap: balance
     }
 
-    .tools {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-      gap: 4px 20px
-    }
-
-    .share,
-    .lang button {
-      font: 12px Inter, sans-serif;
-      padding: 4px 8px;
-      border: 0;
-      border-radius: 4px;
-      background: none;
-      color: var(--muted);
-      cursor: pointer
-    }
-
-    .share {
-      text-decoration: underline;
-      text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
-      text-underline-offset: 3px;
-      transition: color .15s
-    }
-
-    .share:hover {
-      color: var(--ink);
-      text-decoration-color: currentColor
-    }
-
-    .share:focus-visible,
-    .lang button:focus-visible {
-      outline: 2px solid var(--ink);
-      outline-offset: 3px
-    }
-
-    .lang {
-      display: flex;
-      justify-content: center;
-      gap: 2px
-    }
-
-    .lang button[aria-pressed="true"] {
-      color: var(--ink);
-      font-weight: 600
-    }
-
     footer {
-      text-align: center;
-      font-size: 13px;
-      color: var(--muted);
       display: flex;
       flex-direction: column;
-      gap: 6px
+      align-items: center;
+      text-align: center;
+      gap: 6px;
+      font-size: 15px
     }
 
     footer p {
@@ -247,12 +182,41 @@
     }
 
     footer a {
-      color: inherit
+      color: inherit;
+      text-underline-offset: 3px
     }
 
-    .credit {
-      font-size: 12px;
-      opacity: .8
+    .tools {
+      display: flex;
+      gap: 24px;
+      margin-top: 6px
+    }
+
+    .share,
+    .lang button {
+      font: inherit;
+      padding: 4px 0;
+      border: 0;
+      background: none;
+      color: inherit;
+      cursor: pointer
+    }
+
+    .share {
+      text-decoration: underline;
+      text-underline-offset: 3px
+    }
+
+    .lang {
+      display: flex;
+      gap: 12px
+    }
+
+    .lang button[aria-pressed="true"] {
+      font-weight: 800;
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px
     }
 
     @media (max-height:450px) {
@@ -268,9 +232,7 @@
 </head>
 
 <body>
-  <header>
-    <div class="flag"><i></i><i></i><i></i></div>
-  </header>
+  <div class="flag"><i></i><i></i><i></i></div>
   <main>
     <p class="q" id="q"></p>
     <button class="answer" id="answer" type="button" aria-describedby="line">…</button>
@@ -278,13 +240,13 @@
     <p class="hint" id="hint"></p>
     <noscript>
       <p class="q">No JavaScript, no verdict.</p>
-      <p class="answer" style="--c: var(--no)">NO</p>
+      <p class="answer">NO</p>
       <p class="line">Assume no. It's safer.</p>
     </noscript>
   </main>
   <footer>
     <p id="espresso"></p>
-    <p class="credit" id="credit">Made by <a href="https://sirlisko.com">sirlisko</a>, in memory of the original by <a
+    <p id="credit">Made by <a href="https://sirlisko.com">sirlisko</a>, in memory of the original by <a
         href="https://www.raibaz.it/">raibaz</a>. Riposi in pace.</p>
     <div class="tools">
       <button class="share" id="share" type="button"></button>
@@ -298,26 +260,26 @@
     const TEXT = {
       en: {
         title: "Can I have a cappuccino?",
-        q: t => `Can I have a <b>cappuccino</b> at\u00a0<b>${t}</b>?`,
-        hint: "Tap the answer to ask again. It won't change.",
-        espresso: "An espresso, on the other hand, is always allowed. ☕",
+        q: t => `Can I have a cappuccino at\u00a0${t}?`,
+        hint: "Tap to ask again. It won't change.",
+        espresso: "An espresso, on the other hand, is always allowed.",
         credit: `Made by <a href="https://sirlisko.com">sirlisko</a>, in memory of the original by <a href="https://www.raibaz.it/">raibaz</a>. Riposi in pace.`,
         nags: ["The answer hasn't changed. Stop tapping.", "Tapping harder won't help.", "OK, I'm telling your nonna."],
         share: "Share",
         shareText: w => `Can I have a cappuccino right now? Apparently: ${w}`,
-        copied: "Copied ✓",
+        copied: "Copied",
         copiedJoke: "Link copied. Go ruin their afternoon.",
       },
       it: {
         title: "Posso prendere un cappuccino?",
-        q: t => `Posso prendere un <b>cappuccino</b> alle\u00a0<b>${t}</b>?`,
-        hint: "Tocca la risposta per chiedere di nuovo. Non cambierà.",
-        espresso: "Il caffè, invece, va sempre bene. ☕",
+        q: t => `Posso prendere un cappuccino alle\u00a0${t}?`,
+        hint: "Tocca per chiedere di nuovo. Non cambierà.",
+        espresso: "Il caffè, invece, va sempre bene.",
         credit: `Fatto da <a href="https://sirlisko.com">sirlisko</a>, in memoria dell'originale di <a href="https://www.raibaz.it/">raibaz</a>. Riposi in pace.`,
         nags: ["La risposta non è cambiata. Smettila di toccare.", "Toccare più forte non serve.", "Va bene, lo dico a tua nonna."],
         share: "Condividi",
         shareText: w => `Posso prendere un cappuccino adesso? A quanto pare: ${w}`,
-        copied: "Copiato ✓",
+        copied: "Copiato",
         copiedJoke: "Link copiato. Vai a rovinargli il pomeriggio.",
       },
     };
@@ -523,7 +485,6 @@
         ],
       }
     };
-    const COLORS = { yes: "var(--yes)", maybe: "var(--maybe)", no: "var(--no)" };
     const $ = id => document.getElementById(id);
     const pad = n => String(n).padStart(2, "0");
     const prefersDark = matchMedia("(prefers-color-scheme: dark)");
@@ -545,22 +506,22 @@
     function applyTheme(h) {
       const dark = prefersDark.matches || h >= 20 || h < 5;
       document.documentElement.dataset.theme = dark ? "dark" : "light";
-      document.querySelector('meta[name="theme-color"]').content = dark ? "#1c130d" : "#f5ecdf";
+      document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.body).getPropertyValue("--bg").trim();
     }
     function render(d) {
       if (CUSTOM) $("q").textContent = CUSTOM.q;
-      else $("q").innerHTML = T.q(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
-      applyTheme(d.getHours());
+      else $("q").textContent = T.q(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
       const band = CUSTOM || bandFor(d);
-      if (band === current) return;
-      current = band;
-      taps = 0;
-      document.body.dataset.level = band.level;
-      const a = $("answer");
-      a.textContent = band.word;
-      a.toggleAttribute("data-accent", /[ÀÈÉÌÒÙ]/.test(band.word));
-      a.style.setProperty("--c", COLORS[band.level]);
-      nextLine();
+      if (band !== current) {
+        current = band;
+        taps = 0;
+        document.body.dataset.level = band.level;
+        const a = $("answer");
+        a.textContent = band.word;
+        a.toggleAttribute("data-accent", /[ÀÈÉÌÒÙ]/.test(band.word));
+        nextLine();
+      }
+      applyTheme(d.getHours());
     }
     function nextLine() {
       const lines = current.lines[lang];
@@ -612,7 +573,7 @@
       } catch { }
     }
 
-    $("answer").addEventListener("click", onTap);
+    document.addEventListener("click", e => { if (!e.target.closest("a, .tools")) onTap(); });
     $("share").addEventListener("click", share);
     document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => {
       try { localStorage.setItem("lang", b.dataset.lang); } catch { }
